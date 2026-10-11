@@ -2,15 +2,15 @@
 // Copyright 2026 Steven Festenstein
 
 #include "Demos.h"
-
+#include "Logger.h"
+#include "LoggerMacros.h"
 #include "StackTrace.h"
 
-#include <iostream>
 #include <stdexcept>
 
 void RunStackTraceDemo(bool triggerRealCrash)
 {
-   std::cout << "=== StackTrace demo ===\n";
+   GPINFO("=== StackTrace demo ===");
 
    // Non-crash path: capture a formatted stack trace from a caught
    // exception, safe to call from ordinary code.
@@ -20,13 +20,13 @@ void RunStackTraceDemo(bool triggerRealCrash)
    }
    catch (const std::exception&)
    {
-      std::cout << "captureStackTrace() from a caught exception:\n"
-                << CommonUtils::StackTrace::CaptureStackTrace() << '\n';
+      GPINFO("captureStackTrace() from a caught exception:{} ",
+             CommonUtils::StackTrace::CaptureStackTrace());
    }
 
    if (!triggerRealCrash)
    {
-      std::cout << "(skipping the real crash demo; pass --crash to trigger one)\n\n";
+      GPINFO("(skipping the real crash demo; pass --crash to trigger one)");
       return;
    }
 
@@ -35,13 +35,13 @@ void RunStackTraceDemo(bool triggerRealCrash)
    // post-crash hook, then deliberately dereferences a null pointer. This
    // terminates the process by design -- that's the whole point of
    // installSignalHandlers().
-   CommonUtils::StackTrace::SetPostCrashHook([](int code)
-   {
-      std::cerr << "  post-crash hook ran, code=" << code << '\n';
+   CommonUtils::StackTrace::SetPostCrashHook([](int code) {
+      CommonUtils::Logging::DumpTraceBacktrace();
+      GPERROR("  post-crash hook ran, code= {} ", code);
    });
    CommonUtils::StackTrace::InstallSignalHandlers();
 
-   std::cout << "Triggering a real crash (null pointer dereference)...\n";
+   GPINFO("Triggering a real crash (null pointer dereference)...");
    // Deliberate -- this line only exists to demonstrate the crash handler.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnull-dereference"
@@ -49,5 +49,5 @@ void RunStackTraceDemo(bool triggerRealCrash)
    *p = 1;
 #pragma GCC diagnostic pop
 
-   std::cout << "unreachable\n";
+   GPCRIT("unreachable");
 }

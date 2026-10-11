@@ -30,6 +30,9 @@ void RunLoggerDemo()
    consoleSink.level = "trace";
    consoleSink.colored = true;
    config.sinks.push_back(consoleSink);
+   config.enableTraceLogger = true;
+   config.traceBacktraceDepth = 256;
+   config.traceFilePath = "trace.log";
 
    CommonUtils::Logging::SinkConfig fileSink;
    fileSink.type = CommonUtils::Logging::SinkType::RotatingFile;
