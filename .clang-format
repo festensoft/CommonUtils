@@ -1,0 +1,146 @@
+# =============================================================================
+# RadioWzard Clang-Format Configuration
+# =============================================================================
+# Style: 3 space indent, curly braces on next line (Allman style)
+# =============================================================================
+
+---
+Language: Cpp
+Standard: c++20
+
+# Indentation
+IndentWidth: 3
+TabWidth: 3
+UseTab: Never
+IndentCaseLabels: true
+IndentCaseBlocks: false
+IndentPPDirectives: BeforeHash
+IndentExternBlock: Indent
+IndentGotoLabels: false
+NamespaceIndentation: None
+AccessModifierOffset: -3
+
+# Braces - Allman style (next line, no indent)
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: true
+  AfterClass: true
+  AfterControlStatement: Always
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+  AfterUnion: true
+  AfterExternBlock: true
+  BeforeCatch: true
+  BeforeElse: true
+  BeforeLambdaBody: false
+  BeforeWhile: true
+  IndentBraces: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
+
+# Line breaks
+ColumnLimit: 100
+BreakBeforeBinaryOperators: None
+BreakBeforeConceptDeclarations: Always
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializers: BeforeColon
+BreakInheritanceList: BeforeColon
+BreakStringLiterals: true
+AlwaysBreakAfterReturnType: None
+AlwaysBreakBeforeMultilineStrings: false
+AlwaysBreakTemplateDeclarations: Yes
+
+# Alignment
+AlignAfterOpenBracket: Align
+AlignArrayOfStructures: Right
+AlignConsecutiveAssignments: false
+AlignConsecutiveBitFields: false
+AlignConsecutiveDeclarations: false
+AlignConsecutiveMacros: false
+AlignEscapedNewlines: Left
+AlignOperands: Align
+AlignTrailingComments: true
+
+# Spaces
+SpaceAfterCStyleCast: false
+SpaceAfterLogicalNot: false
+SpaceAfterTemplateKeyword: true
+SpaceAroundPointerQualifiers: Default
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCaseColon: false
+SpaceBeforeCpp11BracedList: false
+SpaceBeforeCtorInitializerColon: true
+SpaceBeforeInheritanceColon: true
+SpaceBeforeParens: ControlStatements
+SpaceBeforeRangeBasedForLoopColon: true
+SpaceBeforeSquareBrackets: false
+SpaceInEmptyBlock: false
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 1
+SpacesInAngles: Never
+SpacesInCStyleCastParentheses: false
+SpacesInConditionalStatement: false
+SpacesInContainerLiterals: false
+SpacesInLineCommentPrefix:
+  Minimum: 1
+  Maximum: -1
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+
+# Other formatting
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+AllowShortBlocksOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLambdasOnASingleLine: Inline
+AllowShortLoopsOnASingleLine: false
+BinPackArguments: true
+BinPackParameters: true
+CompactNamespaces: false
+Cpp11BracedListStyle: true
+DeriveLineEnding: true
+DerivePointerAlignment: false
+EmptyLineAfterAccessModifier: Never
+EmptyLineBeforeAccessModifier: LogicalBlock
+FixNamespaceComments: true
+IncludeBlocks: Regroup
+IncludeCategories:
+  # Project headers
+  - Regex: '^"'
+    Priority: 1
+  # System headers
+  - Regex: '^<[^/]+>'
+    Priority: 3
+  # Library headers
+  - Regex: '^<'
+    Priority: 2
+InsertBraces: true
+InsertTrailingCommas: None
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1
+PackConstructorInitializers: BinPack
+PointerAlignment: Left
+QualifierAlignment: Leave
+ReflowComments: true
+SeparateDefinitionBlocks: Always
+SortIncludes: CaseSensitive
+SortUsingDeclarations: true
+
+# Penalties (for line breaking decisions)
+PenaltyBreakAssignment: 2
+PenaltyBreakBeforeFirstCallParameter: 19
+PenaltyBreakComment: 300
+PenaltyBreakFirstLessLess: 120
+PenaltyBreakOpenParenthesis: 0
+PenaltyBreakString: 1000
+PenaltyBreakTemplateDeclaration: 10
+PenaltyExcessCharacter: 1000000
+PenaltyIndentedWhitespace: 0
+PenaltyReturnTypeOnItsOwnLine: 200
+...

@@ -1,0 +1,6 @@
+# The Dockerfile doesn't COPY any project files (source is bind-mounted at
+# container run time by VS Code Dev Containers), so this only controls how
+# much gets sent to the Docker daemon as build context -- build/ alone can
+# reach multiple GB across the various CMake presets' FetchContent trees.
+build/
+.git/

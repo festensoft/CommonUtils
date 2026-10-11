@@ -1,0 +1,324 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 25,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_CXX_SCAN_FOR_MODULES": "OFF"
+      }
+    },
+    {
+      "name": "debug-type",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "release-type",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "clang",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
+      }
+    },
+    {
+      "name": "asan-ubsan-flags",
+      "hidden": true,
+      "description": "Not combinable with tsan-flags -- sanitizers are mutually exclusive at the binary level.",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=address,undefined",
+        "CMAKE_GTEST_DISCOVER_TESTS_DISCOVERY_MODE": "PRE_TEST"
+      }
+    },
+    {
+      "name": "tsan-flags",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "-fsanitize=thread -fno-omit-frame-pointer",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=thread",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=thread",
+        "CMAKE_GTEST_DISCOVER_TESTS_DISCOVERY_MODE": "PRE_TEST"
+      }
+    },
+    {
+      "name": "debug",
+      "inherits": [
+        "base",
+        "debug-type"
+      ],
+      "displayName": "Debug (GCC)",
+      "description": "Unoptimized build with debug symbols."
+    },
+    {
+      "name": "release",
+      "inherits": [
+        "base",
+        "release-type"
+      ],
+      "displayName": "Release (GCC)",
+      "description": "Optimized build, no debug info overhead."
+    },
+    {
+      "name": "release-clang",
+      "inherits": [
+        "base",
+        "release-type",
+        "clang"
+      ],
+      "displayName": "Release (Clang)",
+      "description": "Optimized build compiled with Clang."
+    },
+    {
+      "name": "debug-clang",
+      "inherits": [
+        "base",
+        "debug-type",
+        "clang"
+      ],
+      "displayName": "Debug (Clang)",
+      "description": "Same as debug but compiled with Clang. Best match for clangd."
+    },
+    {
+      "name": "asan-ubsan",
+      "inherits": [
+        "base",
+        "debug-type",
+        "clang",
+        "asan-ubsan-flags"
+      ],
+      "displayName": "Debug + ASan/UBSan (Clang)"
+    },
+    {
+      "name": "tsan",
+      "inherits": [
+        "base",
+        "debug-type",
+        "clang",
+        "tsan-flags"
+      ],
+      "displayName": "Debug + TSan (Clang)",
+      "description": "On some container hosts (observed under Docker Desktop's WSL2 backend) TSan's runtime crashes on startup with 'unexpected memory mapping' due to ASLR. tests/CMakeLists.txt wraps the test launcher in `setarch -R` when it can; if you run the binary directly, use `setarch $(uname -m) -R ./build/tsan/bin/CommonUtilsTests`."
+    },
+    {
+      "name": "clang-tidy",
+      "inherits": [
+        "base",
+        "debug-type",
+        "clang"
+      ],
+      "displayName": "Debug + clang-tidy (Clang)",
+      "description": "Debug build that runs clang-tidy (using the project's .clang-tidy config) on CommonUtils', the tests' and the examples' own sources as part of the build. Vendored dependencies are not linted.",
+      "cacheVariables": {
+        "ENABLE_CLANG_TIDY": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug"
+    },
+    {
+      "name": "release",
+      "configurePreset": "release"
+    },
+    {
+      "name": "release-clang",
+      "configurePreset": "release-clang"
+    },
+    {
+      "name": "debug-clang",
+      "configurePreset": "debug-clang"
+    },
+    {
+      "name": "asan-ubsan",
+      "configurePreset": "asan-ubsan"
+    },
+    {
+      "name": "tsan",
+      "configurePreset": "tsan"
+    },
+    {
+      "name": "clang-tidy",
+      "configurePreset": "clang-tidy"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "debug",
+      "inherits": "base",
+      "configurePreset": "debug"
+    },
+    {
+      "name": "release",
+      "inherits": "base",
+      "configurePreset": "release"
+    },
+    {
+      "name": "release-clang",
+      "inherits": "base",
+      "configurePreset": "release-clang"
+    },
+    {
+      "name": "debug-clang",
+      "inherits": "base",
+      "configurePreset": "debug-clang"
+    },
+    {
+      "name": "asan-ubsan",
+      "inherits": "base",
+      "configurePreset": "asan-ubsan"
+    },
+    {
+      "name": "tsan",
+      "inherits": "base",
+      "configurePreset": "tsan"
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "debug",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "debug"
+        },
+        {
+          "type": "build",
+          "name": "debug"
+        },
+        {
+          "type": "test",
+          "name": "debug"
+        }
+      ]
+    },
+    {
+      "name": "release",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "release"
+        },
+        {
+          "type": "build",
+          "name": "release"
+        },
+        {
+          "type": "test",
+          "name": "release"
+        }
+      ]
+    },
+    {
+      "name": "debug-clang",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "debug-clang"
+        },
+        {
+          "type": "build",
+          "name": "debug-clang"
+        },
+        {
+          "type": "test",
+          "name": "debug-clang"
+        }
+      ]
+    },
+    {
+      "name": "release-clang",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "release-clang"
+        },
+        {
+          "type": "build",
+          "name": "release-clang"
+        },
+        {
+          "type": "test",
+          "name": "release-clang"
+        }
+      ]
+    },
+    {
+      "name": "asan-ubsan",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "asan-ubsan"
+        },
+        {
+          "type": "build",
+          "name": "asan-ubsan"
+        },
+        {
+          "type": "test",
+          "name": "asan-ubsan"
+        }
+      ]
+    },
+    {
+      "name": "tsan",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "tsan"
+        },
+        {
+          "type": "build",
+          "name": "tsan"
+        },
+        {
+          "type": "test",
+          "name": "tsan"
+        }
+      ]
+    },
+    {
+      "name": "clang-tidy",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "clang-tidy"
+        },
+        {
+          "type": "build",
+          "name": "clang-tidy"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Linux jobs run inside the same image as the devcontainer
+  # (.devcontainer/Dockerfile), so CI and local builds use identical
+  # compilers and CMake. Each job is just a workflow preset from
+  # CMakePresets.json: configure -> build -> test.
+  linux:
+    name: ${{ matrix.preset }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        preset:
+          - debug          # GCC
+          - release        # GCC
+          - debug-clang
+          - release-clang
+          - asan-ubsan     # Clang + ASan/UBSan
+          - tsan           # Clang + TSan
+          - clang-tidy     # build only; lints this project's sources
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build the dev image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: .devcontainer/Dockerfile
+          tags: commonutils-dev:ci
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # GitHub's runners use a high ASLR entropy that TSan/ASan's shadow
+      # memory layout can't cope with ("unexpected memory mapping"). The
+      # container shares the host kernel, so this has to be set on the host.
+      - name: Lower ASLR entropy for sanitizers
+        if: matrix.preset == 'tsan' || matrix.preset == 'asan-ubsan'
+        run: sudo sysctl -w vm.mmap_rnd_bits=28
+
+      # --user keeps build/ owned by the runner user. seccomp=unconfined
+      # matches the devcontainer; tests/CMakeLists.txt wraps TSan runs in
+      # `setarch -R`, which Docker's default seccomp profile blocks.
+      - name: Configure, build, test
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            --security-opt seccomp=unconfined \
+            --cap-add SYS_PTRACE \
+            -e HOME=/tmp \
+            -v "$PWD":/work -w /work \
+            commonutils-dev:ci \
+            cmake --workflow --preset ${{ matrix.preset }}
+
+      - name: Upload test log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testlog-${{ matrix.preset }}
+          path: build/${{ matrix.preset }}/Testing/Temporary/LastTest.log
+          if-no-files-found: ignore
+
+  # Not containerised, so it uses the runner's own toolchain (Apple clang).
+  # Marked non-blocking until it has been seen green once: Apple's libc++
+  # needs to support std::format for this project to build.
+  macos:
+    name: macos (${{ matrix.preset }})
+    runs-on: macos-15
+    continue-on-error: true
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [debug-clang, release-clang]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install CMake and Ninja
+        run: brew install cmake ninja
+      - name: Configure, build, test
+        run: cmake --workflow --preset ${{ matrix.preset }}

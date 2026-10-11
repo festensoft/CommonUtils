@@ -1,0 +1,19 @@
+# The compilation database is found automatically: CMakeLists.txt links
+# <source>/compile_commands.json to the most recently configured preset.
+CompileFlags:
+  # The database may come from a GCC preset; drop flags clangd can't parse.
+  Remove:
+    - -Wuseless-cast
+    - -Wnrvo
+    - -fsanitize*
+    - -fno-sanitize*
+
+Diagnostics:
+  UnusedIncludes: Strict
+  MissingIncludes: None
+
+InlayHints:
+  Enabled: No
+
+Hover:
+  ShowAKA: No

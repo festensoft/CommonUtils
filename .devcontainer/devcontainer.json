@@ -1,0 +1,43 @@
+{
+   "name": "CommonUtils (Debian/GCC13/Clang19)",
+   "build": {
+      "dockerfile": "Dockerfile",
+      "context": ".."
+   },
+   "capAdd": [
+      "SYS_PTRACE"
+   ],
+   "securityOpt": [
+      "seccomp=unconfined"
+   ],
+   "runArgs": [
+      "--security-opt=seccomp=unconfined",
+      "--cap-add=SYS_PTRACE"
+   ],
+   "remoteUser": "vscode",
+   "postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
+   "customizations": {
+      "vscode": {
+         "extensions": [
+            "llvm-vs-code-extensions.vscode-clangd",
+            "ms-vscode.cpptools",
+            "ms-vscode.cmake-tools",
+            "vadimcn.vscode-lldb"
+         ],
+         "settings": {
+            // clangd reads <workspace>/compile_commands.json, which
+            // CMakeLists.txt links to the active preset's database.
+            // cpptools is kept only for its debugger, so its own
+            // IntelliSense engine is disabled to avoid the two fighting
+            // over squiggles.
+            "C_Cpp.intelliSenseEngine": "disabled",
+            "clangd.arguments": [
+               "--background-index",
+               "--clang-tidy",
+               "--query-driver=/usr/bin/*g++*,/usr/bin/clang*"
+            ],
+            "cmake.configureOnOpen": false
+         }
+      }
+   }
+}

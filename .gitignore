@@ -1,0 +1,57 @@
+# Build directories
+build/
+out/
+cmake-build-*/
+
+# IDE files
+.vs/
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Compiled files
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+*.pdb
+
+# Generated files
+*.pb.h
+*.pb.cc
+compile_commands.json
+CMakeUserPresets.json
+
+# Conan
+CMakeUserPresets.json
+graph_info.json
+
+# Coverage
+*.gcno
+*.gcda
+*.gcov
+coverage.info
+coverage_report/
+
+# Package files
+*.tar.gz
+*.zip
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+CMakeLists.txt.user
+.cache/*
