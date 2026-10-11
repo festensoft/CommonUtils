@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSL-1.0
+// Copyright 2026 Steven Festenstein
+
 #ifndef LOGGING_SINKFACTORY_H_
 #define LOGGING_SINKFACTORY_H_
 

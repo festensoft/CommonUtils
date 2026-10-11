@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSL-1.0
+// Copyright 2026 Steven Festenstein
+
 #include "Logger.h"
 
 #include "LogUtils.h"
@@ -131,7 +134,9 @@ void DumpTraceBacktrace()
 
 bool ShouldLog(Level level)
 {
-   if (level == Level::Trace && traceLogger.load(std::memory_order_acquire) != nullptr)
+   // The trace logger records every message at every level, so while it is
+   // enabled nothing can be skipped.
+   if (traceLogger.load(std::memory_order_acquire) != nullptr)
    {
       return true;
    }
@@ -141,15 +146,18 @@ bool ShouldLog(Level level)
 void LogAt(Level level, const SourceLocation& location, const std::string& message)
 {
    const spdlog::source_loc loc(location.file, location.line, location.function);
-   if (level == Level::Trace)
+   const spdlog::level::level_enum spdLevel = ToSpdlogLevel(level);
+
+   // Flight recorder first: it keeps the message in its ring buffer whatever
+   // the general logger's level is, and never writes anything by itself.
+   if (spdlog::logger* const trace = traceLogger.load(std::memory_order_acquire))
    {
-      if (spdlog::logger* const trace = traceLogger.load(std::memory_order_acquire))
-      {
-         trace->log(loc, spdlog::level::trace, message);
-         return;
-      }
+      trace->log(loc, spdLevel, message);
    }
-   Current().log(loc, ToSpdlogLevel(level), message);
+
+   // The general logger filters by its own level exactly as it would without
+   // a trace logger.
+   Current().log(loc, spdLevel, message);
 }
 
 void LogTrace(const std::string& message) { LogAt(Level::Trace, SourceLocation(), message); }

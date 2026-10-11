@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSL-1.0
+// Copyright 2026 Steven Festenstein
+
 #include "StackTrace.h"
 
 #define WIN32_LEAN_AND_MEAN

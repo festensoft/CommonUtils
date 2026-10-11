@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSL-1.0
+// Copyright 2026 Steven Festenstein
+
 #ifndef COMMONUTILS_TIMER_H_
 #define COMMONUTILS_TIMER_H_
 

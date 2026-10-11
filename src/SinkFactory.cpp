@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSL-1.0
+// Copyright 2026 Steven Festenstein
+
 #include "SinkFactory.h"
 
 #include "LogUtils.h"
@@ -232,10 +235,10 @@ std::shared_ptr<spdlog::logger> BuildTraceLogger(const LoggerConfig& config,
                                             defaults.maxFiles));
    }
 
-   // Level above Trace on purpose: nothing is written as it happens. spdlog
-   // still records every message in the backtrace ring buffer regardless of
-   // level, and writes them out on dump_backtrace().
-   return MakeLogger("trace", sinks, config.pattern, spdlog::level::err,
+   // Level "off" on purpose: nothing is written as it happens. spdlog still
+   // records every message, of any level, in the backtrace ring buffer, and
+   // writes them out (with their original levels) on dump_backtrace().
+   return MakeLogger("trace", sinks, config.pattern, spdlog::level::off,
                      config.traceBacktraceDepth);
 }
 

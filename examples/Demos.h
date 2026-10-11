@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSL-1.0
+// Copyright 2026 Steven Festenstein
+
 #ifndef COMMONUTILS_EXAMPLES_DEMOS_H_
 #define COMMONUTILS_EXAMPLES_DEMOS_H_
 

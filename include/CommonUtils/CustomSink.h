@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSL-1.0
+// Copyright 2026 Steven Festenstein
+
 #ifndef COMMONUTILS_LOGGING_CUSTOMSINK_H_
 #define COMMONUTILS_LOGGING_CUSTOMSINK_H_
 

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: BSL-1.0
+# Copyright 2026 Steven Festenstein
+
 cmake_minimum_required(VERSION 4.1)
 
 # Project definition

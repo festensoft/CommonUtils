@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSL-1.0
+// Copyright 2026 Steven Festenstein
+
 #ifndef COMMONUTILS_LOGGING_LOGGER_H_
 #define COMMONUTILS_LOGGING_LOGGER_H_
 
@@ -71,8 +74,8 @@ void DumpTraceBacktrace();
 // True when the current logger would emit at this level. Perf-critical: a
 // single atomic load plus a comparison. The GP* macros gate on this so a
 // disabled call's arguments and message formatting are never evaluated.
-// Trace is always "on" while the trace logger is enabled, since its ring
-// buffer records every message.
+// Always true while the trace logger is enabled, since its ring buffer
+// records every message at every level.
 bool ShouldLog(Level level);
 void LogAt(Level level, const SourceLocation& location, const std::string& message);
 

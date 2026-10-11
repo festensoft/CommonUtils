@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSL-1.0
+// Copyright 2026 Steven Festenstein
+
 #ifndef COMMONUTILS_STACKTRACE_H_
 #define COMMONUTILS_STACKTRACE_H_
 
@@ -52,7 +55,7 @@ namespace CommonUtils
  * @code
  * CommonUtils::Logging::LoggerConfig config;
  * // ... add sinks ...
- * config.enableTraceLogger = true; // keep a ring buffer of recent GPTRACE messages
+ * config.enableTraceLogger = true; // keep a ring buffer of recent log messages
  * CommonUtils::Logging::InitFromConfig(config);
  *
  * CommonUtils::StackTrace::SetPostCrashHook([](int sig)

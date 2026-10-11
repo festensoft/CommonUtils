@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSL-1.0
+// Copyright 2026 Steven Festenstein
+
 #include "CustomSink.h"
 #include "LoggerMacros.h"
 
@@ -113,34 +116,45 @@ TEST_F(LoggerTest, TraceIsDroppedWhenTraceLoggerDisabled)
    EXPECT_EQ(ReadFile(_dir / "general.log").find("never seen"), std::string::npos);
 }
 
-TEST_F(LoggerTest, TraceLoggerKeepsRingBufferUntilDumped)
+TEST_F(LoggerTest, TraceLoggerRecordsEveryLevelUntilDumped)
 {
-   Logging::LoggerConfig config = FileConfig("info");
+   Logging::LoggerConfig config = FileConfig("warn");
    config.enableTraceLogger = true;
-   config.traceBacktraceDepth = 2;
+   config.traceBacktraceDepth = 3;
    config.traceFilePath = (_dir / "trace.log").string();
    ASSERT_TRUE(Logging::InitFromConfig(config));
+   // Everything is recorded, so nothing may be skipped, even below "warn".
    EXPECT_TRUE(Logging::ShouldLog(Logging::Level::Trace));
+   EXPECT_TRUE(Logging::ShouldLog(Logging::Level::Debug));
 
    GPTRACE("first");
    GPTRACE("second");
-   GPTRACE("third");
-   GPINFO("general only");
+   GPDEBUG("third");
+   GPINFO("fourth");
+   GPERROR("fifth");
    Logging::Flush();
 
-   // Nothing is written until the dump, and trace never reaches the general log.
+   // Nothing is written from the ring buffer until the dump...
    EXPECT_EQ(ReadFile(_dir / "trace.log"), "");
+   // ...and the general log behaves as if the recorder weren't there:
+   // warn and above only.
    const std::string general = ReadFile(_dir / "general.log");
-   EXPECT_NE(general.find("general only"), std::string::npos);
+   EXPECT_NE(general.find("fifth"), std::string::npos);
+   EXPECT_EQ(general.find("fourth"), std::string::npos);
    EXPECT_EQ(general.find("third"), std::string::npos);
 
    Logging::DumpTraceBacktrace();
 
-   // Depth is 2, so the oldest message has been overwritten.
+   // Depth is 3: the two oldest are gone; debug, info and error all made it,
+   // each with its original level.
    const std::string trace = ReadFile(_dir / "trace.log");
    EXPECT_EQ(trace.find("first"), std::string::npos);
-   EXPECT_NE(trace.find("second"), std::string::npos);
+   EXPECT_EQ(trace.find("second"), std::string::npos);
    EXPECT_NE(trace.find("third"), std::string::npos);
+   EXPECT_NE(trace.find("fourth"), std::string::npos);
+   EXPECT_NE(trace.find("fifth"), std::string::npos);
+   EXPECT_NE(trace.find("debug third"), std::string::npos);
+   EXPECT_NE(trace.find("error fifth"), std::string::npos);
 }
 
 TEST_F(LoggerTest, ZeroTraceDepthIsRejected)

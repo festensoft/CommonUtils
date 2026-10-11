@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSL-1.0
+// Copyright 2026 Steven Festenstein
+
 #include <gtest/gtest.h>
 #include "Timer.h"
 #include <atomic>
