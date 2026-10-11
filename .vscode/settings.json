@@ -1,0 +1,23 @@
+{
+    // Build with CMake presets only (CMakePresets.json).
+    "cmake.useCMakePresets": "always",
+    "cmake.configureOnOpen": true,
+
+    // clangd drives IntelliSense, diagnostics and formatting. It reads
+    // <workspace>/compile_commands.json, which CMakeLists.txt links to the
+    // active preset's database. cpptools stays installed only for its
+    // debugger, so its own IntelliSense engine is disabled to keep the two
+    // from fighting over squiggles.
+    "C_Cpp.intelliSenseEngine": "disabled",
+    "clangd.arguments": [
+        "--background-index",
+        "--clang-tidy",
+        "--query-driver=/usr/bin/*g++*,/usr/bin/clang*"
+    ],
+
+    // Format on save using the repo's .clang-format.
+    "[cpp]": {
+        "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd",
+        "editor.formatOnSave": true
+    }
+}

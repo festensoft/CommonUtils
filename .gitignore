@@ -5,7 +5,6 @@ cmake-build-*/
 
 # IDE files
 .vs/
-.vscode/settings.json
 .idea/
 *.swp
 *.swo
