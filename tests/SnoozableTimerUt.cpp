@@ -2,47 +2,16 @@
 // Copyright 2026 Steven Festenstein
 
 #include "SnoozableTimer.h"
+#include "TestTiming.h"
 
 #include <gtest/gtest.h>
 
 #include <atomic>
-#include <chrono>
 #include <functional>
-#include <thread>
 
-namespace
-{
-
+using CommonUtils::Test::ProbeSleep;
+using CommonUtils::Test::WaitUntil;
 using namespace std::chrono_literals;
-
-// Poll an atomic until it reaches `expect` or `timeout` elapses.
-// Prefer this over sleep_for + EXPECT: under CI load, sleep_for can return
-// much later than requested, so wall-clock ladders with ~10ms slack flake
-// even when the timer itself is correct.
-bool WaitUntil(const std::atomic<int>& value, int expect, std::chrono::milliseconds timeout)
-{
-   const auto deadline = std::chrono::steady_clock::now() + timeout;
-   while (value.load() < expect)
-   {
-      if (std::chrono::steady_clock::now() >= deadline)
-      {
-         return false;
-      }
-      std::this_thread::sleep_for(1ms);
-   }
-   return true;
-}
-
-// Brief pause used only as a lower-bound probe ("still shouldn't have
-// fired"). Kept well under the snooze period so scheduling jitter is
-// unlikely to jump past the deadline. Never used as proof that a fire
-// happened -- that always goes through WaitUntil.
-void ProbeSleep(std::chrono::milliseconds d)
-{
-   std::this_thread::sleep_for(d);
-}
-
-} // namespace
 
 class SnoozableTimerTest : public ::testing::Test
 {

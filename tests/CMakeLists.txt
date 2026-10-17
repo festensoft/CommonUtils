@@ -10,6 +10,9 @@ file(GLOB UNIT_TEST_SOURCE CONFIGURE_DEPENDS ${CMAKE_CURRENT_LIST_DIR}/*.cpp)
 # Add the source files
 add_executable(${PROJECT_NAME} ${UNIT_TEST_SOURCE})
 
+# So suites can #include "TestTiming.h" and other test-only helpers.
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+
 target_link_libraries(${PROJECT_NAME}
    PRIVATE
       CommonUtils
