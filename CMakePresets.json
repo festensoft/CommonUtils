@@ -1,8 +1,8 @@
 {
-  "version": 6,
+  "version": 9,
   "cmakeMinimumRequired": {
-    "major": 3,
-    "minor": 25,
+    "major": 4,
+    "minor": 1,
     "patch": 0
   },
   "configurePresets": [
@@ -33,9 +33,10 @@
     {
       "name": "clang",
       "hidden": true,
+      "description": "Absolute /usr/bin paths so Homebrew CMake cannot prefer Homebrew LLVM over Apple Clang (or the distro clang on Linux). Mixing Homebrew Clang with Apple's libc++ fails at link time.",
       "cacheVariables": {
-        "CMAKE_C_COMPILER": "clang",
-        "CMAKE_CXX_COMPILER": "clang++"
+        "CMAKE_C_COMPILER": "/usr/bin/clang",
+        "CMAKE_CXX_COMPILER": "/usr/bin/clang++"
       }
     },
     {
@@ -66,7 +67,7 @@
         "debug-type"
       ],
       "displayName": "Debug (GCC)",
-      "description": "Unoptimized build with debug symbols."
+      "description": "Unoptimized build with debug symbols. On macOS prefer debug-clang (Apple Clang)."
     },
     {
       "name": "release",
@@ -75,7 +76,7 @@
         "release-type"
       ],
       "displayName": "Release (GCC)",
-      "description": "Optimized build, no debug info overhead."
+      "description": "Optimized build, no debug info overhead. On macOS prefer release-clang (Apple Clang)."
     },
     {
       "name": "release-clang",
@@ -85,7 +86,7 @@
         "clang"
       ],
       "displayName": "Release (Clang)",
-      "description": "Optimized build compiled with Clang."
+      "description": "Optimized build compiled with Clang (Apple Clang on macOS)."
     },
     {
       "name": "debug-clang",
@@ -95,7 +96,7 @@
         "clang"
       ],
       "displayName": "Debug (Clang)",
-      "description": "Same as debug but compiled with Clang. Best match for clangd."
+      "description": "Same as debug but compiled with Clang (Apple Clang on macOS). Best match for clangd."
     },
     {
       "name": "asan-ubsan",

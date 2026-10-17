@@ -54,7 +54,7 @@ Registry& GetRegistry()
 spdlog::logger* Retain(std::shared_ptr<spdlog::logger> logger)
 {
    Registry& registry = GetRegistry();
-   spdlog::logger* const raw = logger.get();
+   auto* const raw = logger.get();
    const std::lock_guard<std::mutex> lock(registry.mutex);
    registry.loggers.push_back(std::move(logger));
    return raw;
@@ -65,7 +65,7 @@ spdlog::logger* Retain(std::shared_ptr<spdlog::logger> logger)
 // so this is fine to call from a static initializer in any translation unit.
 spdlog::logger* InitialLogger()
 {
-   static spdlog::logger* const INITIAL = Retain(spdlog::default_logger());
+   static auto* const INITIAL = Retain(spdlog::default_logger());
    return INITIAL;
 }
 

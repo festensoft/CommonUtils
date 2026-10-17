@@ -77,13 +77,12 @@ jobs:
           path: build/${{ matrix.preset }}/Testing/Temporary/LastTest.log
           if-no-files-found: ignore
 
-  # Not containerised, so it uses the runner's own toolchain (Apple clang).
-  # Marked non-blocking until it has been seen green once: Apple's libc++
-  # needs to support std::format for this project to build.
+  # Not containerised: clang presets pin /usr/bin/clang++ (Apple Clang).
+  # Homebrew CMake otherwise prefers Homebrew LLVM for a bare "clang++",
+  # which mismatches Apple's libc++ and fails at link time.
   macos:
     name: macos (${{ matrix.preset }})
     runs-on: macos-15
-    continue-on-error: true
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -95,3 +94,11 @@ jobs:
         run: brew install cmake ninja
       - name: Configure, build, test
         run: cmake --workflow --preset ${{ matrix.preset }}
+
+      - name: Upload test log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testlog-macos-${{ matrix.preset }}
+          path: build/${{ matrix.preset }}/Testing/Temporary/LastTest.log
+          if-no-files-found: ignore

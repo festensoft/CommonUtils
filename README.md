@@ -239,22 +239,28 @@ the trace dump, not the stack trace.
 ## Building
 
 You need CMake 4.1+, Ninja, and a C++20 compiler with a working `<format>`: GCC 13+
-or a recent Clang with libstdc++ 13+ (the CI uses GCC 14 and Clang 19). Dependencies
-(spdlog, GoogleTest) are used from the system if found and fetched otherwise.
+or a recent Clang (Apple Clang on macOS, or Clang with libstdc++ 13+ on Linux).
+Dependencies (spdlog, GoogleTest) are used from the system if found and fetched
+otherwise.
 
 Everything goes through CMake presets, so there are no flags to remember:
 
 ```bash
-cmake --workflow --preset debug      # configure + build + test, in one go
+cmake --workflow --preset debug-clang   # configure + build + test (macOS / Clang)
+cmake --workflow --preset debug         # same, with the default compiler (GCC on Linux)
 ```
 
 | Preset | What you get |
 |---|---|
-| `debug`, `release` | GCC |
-| `debug-clang`, `release-clang` | Clang |
+| `debug`, `release` | Default compiler (GCC in the Linux CI image) |
+| `debug-clang`, `release-clang` | Clang (Apple Clang on macOS; `clang++` on Linux) |
 | `asan-ubsan` | Clang + AddressSanitizer + UBSan |
 | `tsan` | Clang + ThreadSanitizer |
 | `clang-tidy` | Clang, with clang-tidy running as part of the build |
+
+On macOS, use `debug-clang` / `release-clang`. The clang presets pin
+`/usr/bin/clang++` so Homebrew CMake cannot pick Homebrew LLVM by accident —
+mixing that Clang with Apple's libc++ fails at link time.
 
 Each preset builds into `build/<preset>/`. The sanitizer and tidy presets are the
 ones CI leans on, so if you break something, they'll tell you.

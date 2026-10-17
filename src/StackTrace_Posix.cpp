@@ -41,17 +41,14 @@ void StackTrace::InstallSignalHandlers()
    //               re-raise in the handler produces the normal behaviour
    //               (core dump / termination).
    // NOLINTNEXTLINE(hicpp-signed-bitwise) — SA_RESETHAND is defined by POSIX
-   sa.sa_flags = static_cast<int>(SA_RESETHAND);
+   sa.sa_flags = SA_RESETHAND;
 
    sigaction(SIGSEGV, &sa, nullptr);
    sigaction(SIGABRT, &sa, nullptr);
-   sigaction(SIGBUS,  &sa, nullptr);
+   sigaction(SIGBUS, &sa, nullptr);
 }
 
-void StackTrace::SetPostCrashHook(PostCrashHook hook)
-{
-   s_postCrashHook = std::move(hook);
-}
+void StackTrace::SetPostCrashHook(PostCrashHook hook) { s_postCrashHook = std::move(hook); }
 
 std::string StackTrace::CaptureStackTrace(int skipFrames)
 {
@@ -80,21 +77,20 @@ std::string StackTrace::CaptureStackTrace(int skipFrames)
       std::string demangled;
 
       // --- Linux format: look for '(' ... '+' or ')' ---
-      auto parenOpen  = frame.find('(');
-      auto parenPlus  = frame.find('+', parenOpen != std::string::npos ? parenOpen : 0);
+      auto parenOpen = frame.find('(');
+      auto parenPlus = frame.find('+', parenOpen != std::string::npos ? parenOpen : 0);
       auto parenClose = frame.find(')', parenOpen != std::string::npos ? parenOpen : 0);
 
-      if (parenOpen != std::string::npos && parenClose != std::string::npos
-          && parenOpen < parenClose)
+      if (parenOpen != std::string::npos && parenClose != std::string::npos &&
+          parenOpen < parenClose)
       {
-         auto end = (parenPlus != std::string::npos && parenPlus < parenClose)
-                       ? parenPlus : parenClose;
+         auto end =
+             (parenPlus != std::string::npos && parenPlus < parenClose) ? parenPlus : parenClose;
          const std::string mangled = frame.substr(parenOpen + 1, end - parenOpen - 1);
          if (!mangled.empty())
          {
             int status = -1;
-            char* realName = abi::__cxa_demangle(mangled.c_str(),
-                                                  nullptr, nullptr, &status);
+            char* realName = abi::__cxa_demangle(mangled.c_str(), nullptr, nullptr, &status);
             if (status == 0 && realName != nullptr)
             {
                demangled = realName;
@@ -109,8 +105,8 @@ std::string StackTrace::CaptureStackTrace(int skipFrames)
       {
          oss << demangled;
          // Append offset if present.
-         if (parenPlus != std::string::npos && parenClose != std::string::npos
-             && parenPlus < parenClose)
+         if (parenPlus != std::string::npos && parenClose != std::string::npos &&
+             parenPlus < parenClose)
          {
             oss << frame.substr(parenPlus, parenClose - parenPlus);
          }
@@ -171,10 +167,17 @@ void StackTrace::SignalHandler(int signal)
    // Also print a human-readable name for the most common signals.
    switch (signal)
    {
-   case SIGSEGV: WriteStderr(" (SIGSEGV - Segmentation fault)"); break;
-   case SIGABRT: WriteStderr(" (SIGABRT - Abort)");              break;
-   case SIGBUS:  WriteStderr(" (SIGBUS  - Bus error)");          break;
-   default:      break;
+      case SIGSEGV:
+         WriteStderr(" (SIGSEGV - Segmentation fault)");
+         break;
+      case SIGABRT:
+         WriteStderr(" (SIGABRT - Abort)");
+         break;
+      case SIGBUS:
+         WriteStderr(" (SIGBUS  - Bus error)");
+         break;
+      default:
+         break;
    }
 
    WriteStderr("\n========================================\n");

@@ -3,6 +3,7 @@
     "cmake.useCMakePresets": "always",
     "cmake.configureOnOpen": true,
 
+    "cmake.options.statusBarVisibility": "visible",
     // clangd drives IntelliSense, diagnostics and formatting. It reads
     // <workspace>/compile_commands.json, which CMakeLists.txt links to the
     // active preset's database. cpptools stays installed only for its

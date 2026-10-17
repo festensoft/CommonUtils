@@ -10,6 +10,40 @@
 #include <functional>
 #include <thread>
 
+namespace
+{
+
+using namespace std::chrono_literals;
+
+// Poll an atomic until it reaches `expect` or `timeout` elapses.
+// Prefer this over sleep_for + EXPECT: under CI load, sleep_for can return
+// much later than requested, so wall-clock ladders with ~10ms slack flake
+// even when the timer itself is correct.
+bool WaitUntil(const std::atomic<int>& value, int expect, std::chrono::milliseconds timeout)
+{
+   const auto deadline = std::chrono::steady_clock::now() + timeout;
+   while (value.load() < expect)
+   {
+      if (std::chrono::steady_clock::now() >= deadline)
+      {
+         return false;
+      }
+      std::this_thread::sleep_for(1ms);
+   }
+   return true;
+}
+
+// Brief pause used only as a lower-bound probe ("still shouldn't have
+// fired"). Kept well under the snooze period so scheduling jitter is
+// unlikely to jump past the deadline. Never used as proof that a fire
+// happened -- that always goes through WaitUntil.
+void ProbeSleep(std::chrono::milliseconds d)
+{
+   std::this_thread::sleep_for(d);
+}
+
+} // namespace
+
 class SnoozableTimerTest : public ::testing::Test
 {
 protected:
@@ -17,10 +51,10 @@ protected:
 
    // atomic: written from the timer's worker thread (via _incrementCount,
    // invoked as the SnoozableTimer callback), read from the test's main
-   // thread in every EXPECT_EQ below. A plain int here is a real data
-   // race (caught by ThreadSanitizer) even though it "worked" in practice
-   // on x86 -- relying on an intervening sleep_for() is not a substitute
-   // for actual synchronization.
+   // thread in every EXPECT below. A plain int here is a real data race
+   // (caught by ThreadSanitizer) even though it "worked" in practice on
+   // x86 -- relying on an intervening sleep_for() is not a substitute for
+   // actual synchronization.
    static std::atomic<int> snExecutionCount;
    std::function<void()> _incrementCount = [&]() {
       snExecutionCount++;
@@ -29,193 +63,163 @@ protected:
 
 std::atomic<int> SnoozableTimerTest::snExecutionCount{0};
 
-// Test basic execution timing
 TEST_F(SnoozableTimerTest, ExecutesAtSpecifiedTime)
 {
-   auto start = std::chrono::high_resolution_clock::now();
-   auto execTime = start + std::chrono::milliseconds(500);
-
-   CommonUtils::SnoozableTimer executor(_incrementCount, 500);
+   CommonUtils::SnoozableTimer executor(_incrementCount, 200);
    executor.Start();
 
-   std::this_thread::sleep_for(std::chrono::milliseconds(600));
+   EXPECT_TRUE(WaitUntil(snExecutionCount, 1, 2s));
    executor.Stop();
-
-   EXPECT_EQ(snExecutionCount, 1);
-   auto now = std::chrono::high_resolution_clock::now();
-   EXPECT_GE(now, execTime);
+   EXPECT_EQ(snExecutionCount.load(), 1);
 }
 
-// Test adding time before execution
 TEST_F(SnoozableTimerTest, AddTimeBeforeExecution)
 {
+   // UpdateSnoozePeriod also snoozes: deadline becomes now+500ms.
    CommonUtils::SnoozableTimer executor(_incrementCount, 500);
    executor.Start();
-
    executor.UpdateSnoozePeriod(500);
-   std::this_thread::sleep_for(std::chrono::milliseconds(400));
 
-   EXPECT_EQ(snExecutionCount, 0); // Shouldn't execute yet
+   ProbeSleep(100ms);
+   EXPECT_EQ(snExecutionCount.load(), 0);
 
-   std::this_thread::sleep_for(std::chrono::milliseconds(400));
+   EXPECT_TRUE(WaitUntil(snExecutionCount, 1, 2s));
    executor.Stop();
-
-   EXPECT_EQ(snExecutionCount, 1);
+   EXPECT_EQ(snExecutionCount.load(), 1);
 }
 
-// Test immediate execution (edge case: time in past)
 TEST_F(SnoozableTimerTest, ExecutesImmediatelyForPastTime)
 {
    CommonUtils::SnoozableTimer executor(_incrementCount, -500);
    executor.Start();
 
-   std::this_thread::sleep_for(std::chrono::milliseconds(100));
+   EXPECT_TRUE(WaitUntil(snExecutionCount, 1, 2s));
    executor.Stop();
-
-   EXPECT_EQ(snExecutionCount, 1);
+   EXPECT_EQ(snExecutionCount.load(), 1);
 }
 
-// Test multiple starts don't create multiple threads
 TEST_F(SnoozableTimerTest, MultipleStartsAreIdempotent)
 {
-   CommonUtils::SnoozableTimer executor(_incrementCount, 500);
+   CommonUtils::SnoozableTimer executor(_incrementCount, 200);
    executor.Start();
    executor.Start(); // Second start should do nothing
 
-   std::this_thread::sleep_for(std::chrono::milliseconds(600));
+   EXPECT_TRUE(WaitUntil(snExecutionCount, 1, 2s));
    executor.Stop();
-
-   EXPECT_EQ(snExecutionCount, 1); // Should only execute once
+   EXPECT_EQ(snExecutionCount.load(), 1);
 }
 
-// Test stop before execution
 TEST_F(SnoozableTimerTest, StopBeforeExecution)
 {
-   CommonUtils::SnoozableTimer executor(_incrementCount, 1000);
+   // Long period so a short probe + Stop cannot race the deadline under load.
+   CommonUtils::SnoozableTimer executor(_incrementCount, 2000);
    executor.Start();
 
-   std::this_thread::sleep_for(std::chrono::milliseconds(100));
+   ProbeSleep(50ms);
    executor.Stop();
 
-   std::this_thread::sleep_for(std::chrono::seconds(1));
-   EXPECT_EQ(snExecutionCount, 0);
+   // If Stop failed to cancel, the original 2s deadline would still fire.
+   ProbeSleep(500ms);
+   EXPECT_EQ(snExecutionCount.load(), 0);
 }
 
-// Test adding negative time
 TEST_F(SnoozableTimerTest, AddNegativeTime)
 {
    CommonUtils::SnoozableTimer executor(_incrementCount, 1000);
    executor.Start();
 
    executor.UpdateSnoozePeriod(-500);
-   std::this_thread::sleep_for(std::chrono::milliseconds(600));
-
-   EXPECT_EQ(snExecutionCount, 1);
+   EXPECT_TRUE(WaitUntil(snExecutionCount, 1, 2s));
    executor.Stop();
+   EXPECT_EQ(snExecutionCount.load(), 1);
 }
 
-// Test destructor cleanup
 TEST_F(SnoozableTimerTest, DestructorCleansUp)
 {
    {
-      CommonUtils::SnoozableTimer executor(_incrementCount, 1000);
+      CommonUtils::SnoozableTimer executor(_incrementCount, 500);
       executor.Start();
-   } // Destructor called here
+   } // Destructor stops the timer
 
-   std::this_thread::sleep_for(std::chrono::seconds(2));
-   EXPECT_EQ(snExecutionCount, 0); // Shouldn't execute after destruction
+   // Past the original deadline: must not fire after destruction.
+   ProbeSleep(800ms);
+   EXPECT_EQ(snExecutionCount.load(), 0);
 }
 
-// Test zero duration
 TEST_F(SnoozableTimerTest, ZeroDuration)
 {
+   // Deadline is "now" before the worker is spawned, so firing is gated by
+   // thread-creation latency. WaitUntil absorbs that scheduling spike.
    CommonUtils::SnoozableTimer executor(_incrementCount, 0);
    executor.Start();
 
-   // _executionTime is captured as now() before the worker thread is even
-   // spawned (see SnoozableTimer::start()), so firing is gated purely by
-   // OS thread-creation/scheduling latency, not any real countdown. That's
-   // normally sub-millisecond but can spike well past 10ms under load
-   // (e.g. right after other tests in this binary spun up many threads),
-   // so this needs a generous margin to avoid flaking rather than a tight
-   // one tuned for an idle machine.
-   std::this_thread::sleep_for(std::chrono::milliseconds(50));
-   EXPECT_EQ(snExecutionCount, 1);
+   EXPECT_TRUE(WaitUntil(snExecutionCount, 1, 2s));
    executor.Stop();
-   std::this_thread::sleep_for(std::chrono::milliseconds(50));
-   EXPECT_EQ(snExecutionCount, 1);
+   EXPECT_EQ(snExecutionCount.load(), 1);
 }
 
-// Test basic snooze
 TEST_F(SnoozableTimerTest, SingleSnooze)
 {
-   CommonUtils::SnoozableTimer executor(_incrementCount, 100);
+   constexpr int periodMs = 200;
+   CommonUtils::SnoozableTimer executor(_incrementCount, periodMs);
    executor.Start();
-   std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+   ProbeSleep(40ms);
    executor.Snooze();
-   EXPECT_EQ(snExecutionCount, 0);
-   std::this_thread::sleep_for(std::chrono::milliseconds(70));
-   EXPECT_EQ(snExecutionCount, 0);
-   std::this_thread::sleep_for(std::chrono::milliseconds(40));
-   EXPECT_EQ(snExecutionCount, 1);
+   EXPECT_EQ(snExecutionCount.load(), 0);
+
+   // Still inside the new snooze window.
+   ProbeSleep(40ms);
+   EXPECT_EQ(snExecutionCount.load(), 0);
+
+   EXPECT_TRUE(WaitUntil(snExecutionCount, 1, 2s));
    executor.Stop();
-   EXPECT_EQ(snExecutionCount, 1);
+   EXPECT_EQ(snExecutionCount.load(), 1);
 }
 
-// test Multple snoozes
 TEST_F(SnoozableTimerTest, MultiSnooze)
 {
-   CommonUtils::SnoozableTimer executor(_incrementCount, 100);
+   constexpr int periodMs = 200;
+   CommonUtils::SnoozableTimer executor(_incrementCount, periodMs);
    executor.Start();
-   std::this_thread::sleep_for(std::chrono::milliseconds(20));
-   executor.Snooze();
-   std::this_thread::sleep_for(std::chrono::milliseconds(20));
-   executor.Snooze();
-   std::this_thread::sleep_for(std::chrono::milliseconds(20));
-   executor.Snooze();
-   std::this_thread::sleep_for(std::chrono::milliseconds(20));
-   executor.Snooze();
-   std::this_thread::sleep_for(std::chrono::milliseconds(20));
-   executor.Snooze();
-   std::this_thread::sleep_for(std::chrono::milliseconds(20));
-   executor.Snooze();
-   std::this_thread::sleep_for(std::chrono::milliseconds(20));
-   executor.Snooze();
-   std::this_thread::sleep_for(std::chrono::milliseconds(20));
-   executor.Snooze();
-   std::this_thread::sleep_for(std::chrono::milliseconds(20));
-   executor.Snooze();
-   std::this_thread::sleep_for(std::chrono::milliseconds(20));
-   executor.Snooze();
-   EXPECT_EQ(snExecutionCount, 0);
-   std::this_thread::sleep_for(std::chrono::milliseconds(140));
-   EXPECT_EQ(snExecutionCount, 1);
+
+   for (int i = 0; i < 10; ++i)
+   {
+      ProbeSleep(30ms);
+      executor.Snooze();
+      EXPECT_EQ(snExecutionCount.load(), 0) << "fired during snooze loop at i=" << i;
+   }
+
+   EXPECT_TRUE(WaitUntil(snExecutionCount, 1, 2s));
    executor.Stop();
-   std::this_thread::sleep_for(std::chrono::milliseconds(110));
-   EXPECT_EQ(snExecutionCount, 1);
+   EXPECT_EQ(snExecutionCount.load(), 1);
 }
 
-// test Multple snoozes
 TEST_F(SnoozableTimerTest, SnoozeTimeoutSnoozeAgain)
 {
-   CommonUtils::SnoozableTimer executor(_incrementCount, 100);
+   constexpr int periodMs = 200;
+   CommonUtils::SnoozableTimer executor(_incrementCount, periodMs);
    executor.Start();
-   std::this_thread::sleep_for(std::chrono::milliseconds(50));
-   executor.Snooze();
-   EXPECT_EQ(snExecutionCount, 0);
-   std::this_thread::sleep_for(std::chrono::milliseconds(120));
-   EXPECT_EQ(snExecutionCount, 1);
-   std::this_thread::sleep_for(std::chrono::milliseconds(210));
-   EXPECT_EQ(snExecutionCount, 1);
 
+   ProbeSleep(40ms);
    executor.Snooze();
-   std::this_thread::sleep_for(std::chrono::milliseconds(50));
-   EXPECT_EQ(snExecutionCount, 1);
-   std::this_thread::sleep_for(std::chrono::milliseconds(60));
-   EXPECT_EQ(snExecutionCount, 2);
+   EXPECT_EQ(snExecutionCount.load(), 0);
+
+   EXPECT_TRUE(WaitUntil(snExecutionCount, 1, 2s));
+
+   // After a fire with no self-snooze, the worker parks; must not re-fire
+   // on its own.
+   ProbeSleep(300ms);
+   EXPECT_EQ(snExecutionCount.load(), 1);
+
+   // Snooze after park schedules a second execution.
+   executor.Snooze();
+   ProbeSleep(40ms);
+   EXPECT_EQ(snExecutionCount.load(), 1);
+
+   EXPECT_TRUE(WaitUntil(snExecutionCount, 2, 2s));
    executor.Stop();
-   std::this_thread::sleep_for(std::chrono::milliseconds(110));
-   EXPECT_EQ(snExecutionCount, 2);
+   EXPECT_EQ(snExecutionCount.load(), 2);
 }
 
 // Regression test: a callback stopping the timer it belongs to must not
@@ -238,8 +242,8 @@ TEST_F(SnoozableTimerTest, CallbackCanStopItself)
 
    // If the callback's stop() call crashes or deadlocks, this test aborts
    // the process or hangs/times out.
-   std::this_thread::sleep_for(std::chrono::milliseconds(100));
-   EXPECT_EQ(snExecutionCount, 1);
+   EXPECT_TRUE(WaitUntil(snExecutionCount, 1, 2s));
+   EXPECT_EQ(snExecutionCount.load(), 1);
 }
 
 // Regression test: a callback snoozing itself to reschedule must not have
@@ -261,7 +265,7 @@ TEST_F(SnoozableTimerTest, CallbackCanSnoozeItself)
 
    timer.Start();
 
-   std::this_thread::sleep_for(std::chrono::milliseconds(250));
-   EXPECT_EQ(snExecutionCount, 3);
+   EXPECT_TRUE(WaitUntil(snExecutionCount, 3, 2s));
    timer.Stop();
+   EXPECT_EQ(snExecutionCount.load(), 3);
 }

@@ -40,7 +40,7 @@
 #include <string>
 #include <string_view>
 
-#if defined(_WIN32)
+#ifdef _WIN32
 struct _EXCEPTION_POINTERS; // forward decl, avoids pulling in <windows.h> here
 #endif
 
@@ -118,7 +118,7 @@ private:
     */
    static void WriteStderr(const char* msg);
 
-#if defined(_WIN32)
+#ifdef _WIN32
    /** @brief CRT signal handler, used on Windows only for SIGABRT. */
    static void signalHandler(int signal);
 
